@@ -216,9 +216,9 @@ body{font-family:'Segoe UI','Arial Unicode MS',Tahoma,sans-serif;background:var(
 .btn-yes{background:linear-gradient(135deg,#87ceeb,#4fa8d5);color:#020b14;box-shadow:0 4px 20px rgba(135,206,235,.35)}
 .btn-yes:active{transform:scale(.95)}
 
-/* No button — positioned fixed when escaping */
+/* No button — تم إزالة الخصائص القديمة لمنع طيران الزر الإجباري */
 .btn-no{background:transparent;color:rgba(135,206,235,.65);border:1px solid rgba(135,206,235,.25)}
-.btn-no.escaped{position:fixed;z-index:999;margin:0}
+.btn-no.escaped{z-index:99999;}
 
 /* TELEPORT — lives inside .card-inner */
 /* ripple rings inside card */
@@ -293,7 +293,6 @@ body{font-family:'Segoe UI','Arial Unicode MS',Tahoma,sans-serif;background:var(
 <div class="stars" id="stars"></div>
 <div class="particles" id="particles"></div>
 
-<!-- FLOWERS -->
 <div class="flowers">
   <div class="flower flower--1">
     <div class="flower__leafs flower__leafs--1">
@@ -358,14 +357,11 @@ body{font-family:'Segoe UI','Arial Unicode MS',Tahoma,sans-serif;background:var(
   <div class="long-g long-g--7"><div class="grow-ans" style="--d:3s"><div class="leaf leaf--0"></div></div><div class="grow-ans" style="--d:3.2s"><div class="leaf leaf--1"></div></div><div class="grow-ans" style="--d:3.5s"><div class="leaf leaf--2"></div></div><div class="grow-ans" style="--d:3.6s"><div class="leaf leaf--3"></div></div></div>
 </div>
 
-<!-- SINGLE CARD with two faces -->
 <div class="page" id="page1">
   <div class="card" id="mainCard">
     <div class="card-inner" id="cardInner">
-      <!-- Flash overlay for ripple effect -->
       <div class="card-flash" id="cardFlash"></div>
 
-      <!-- Face 1: Question -->
       <div class="card-face" id="face1">
         <div class="card-icon">❤️</div>
         <div class="card-subtitle">سؤال مهم</div>
@@ -377,7 +373,6 @@ body{font-family:'Segoe UI','Arial Unicode MS',Tahoma,sans-serif;background:var(
         </div>
       </div>
 
-      <!-- Face 2: Message (hidden initially) -->
       <div class="card-face-2" id="face2">
         <div class="p2-big">🌸</div>
         <div class="heart-burst">💙 🤍 💙</div>
@@ -427,7 +422,7 @@ window.addEventListener('load', function() {
     document.getElementById('mainCard').classList.add('visible');
   }, 3500);
 
-  // ── NO BUTTON (ANTI-ESCAPE PERFECT BOUNDS) ──
+  // ── NO BUTTON (SAFE TRANSFORM TELEPORT) ──
   var noCount = 0;
   var noMessages = [
     'متأكدة؟ 🥺',
@@ -438,10 +433,8 @@ window.addEventListener('load', function() {
 
   var noBtn = document.getElementById('noBtn');
   var noMsg = document.getElementById('noMsg');
-  var mainCard = document.getElementById('mainCard');
 
   noBtn.addEventListener('click', function(e) {
-    // منع أي سلوك افتراضي أو انتشار للحدث قد يسبب سكرول أو قفزة للشاشة
     e.preventDefault();
     e.stopPropagation();
 
@@ -450,7 +443,7 @@ window.addEventListener('load', function() {
     }
     noCount++;
 
-    // بعد رابع ضغطة: يختفي الزر
+    // بعد رابع ضغطة: يختفي الزر بسلاسة
     if (noCount >= noMessages.length) {
       noBtn.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
       noBtn.style.opacity    = '0';
@@ -459,51 +452,47 @@ window.addEventListener('load', function() {
       return;
     }
 
-    // تحويل الزر لـ fixed ليفصل عن الـ div ولكن بـ z-index أعلى من كل شيء
     if (!noBtn.classList.contains('escaped')) {
       noBtn.classList.add('escaped');
-      noBtn.style.position = 'fixed';
-      noBtn.style.zIndex = '99999';
     }
 
-    // الحصول على أبعاد الشاشة الفعلية الحالية (المنطقة المرئية فقط)
+    // إعداد الترانزيشن السلس الارتدادي ليعطي جمالية الحركة المرئية
+    noBtn.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+    // تحديد أبعاد الشاشة الحقيقية عشان نمنع خروجه الكامل برات شاشات الموبايل الضيقة
     var viewWidth  = window.innerWidth || document.documentElement.clientWidth;
     var viewHeight = window.innerHeight || document.documentElement.clientHeight;
-    
-    var btnWidth  = noBtn.offsetWidth  || 70;
-    var btnHeight = noBtn.offsetHeight || 44;
+    var btnRect    = noBtn.getBoundingClientRect();
 
-    // الحصول على موقع الـ Card الحالي على الشاشة عشان نخليه يتحرك قباله وما يبعد
-    var cardRect = mainCard.getBoundingClientRect();
-    
-    // تحديد منطقة حركة "آمنة جداً" حول الـ Card (بعيداً عن حواف الشاشة تماماً)
-    // النطاق المسموح فيه هو حول الـ card بـ 120 بكسل فقط، وبشرط ما يلمس أطراف الشاشة
-    var minX = Math.max(20, cardRect.left - 120);
-    var maxX = Math.min(viewWidth - btnWidth - 20, cardRect.right + 120);
-    
-    var minY = Math.max(20, cardRect.top - 120);
-    var maxY = Math.min(viewHeight - btnHeight - 20, cardRect.bottom + 120);
+    // مسافة حركة عشوائية وقريبة جداً (من 60 إلى 150 بكسل) تطلعه برا الـ div وبضل قدام عيونها
+    var moveRange = 150;
+    var currentTransformX = parseFloat(noBtn.dataset.tx) || 0;
+    var currentTransformY = parseFloat(noBtn.dataset.ty) || 0;
 
-    // الحافة الاحتياطية في حال كانت الحسبة ضيقة على الشاشات الصغيرة جداً
-    if (minX >= maxX) { minX = 20; maxX = viewWidth - btnWidth - 20; }
-    if (minY >= maxY) { minY = 20; maxY = viewHeight - btnHeight - 20; }
-
-    var currentX = parseFloat(noBtn.style.left) || cardRect.left;
-    var currentY = parseFloat(noBtn.style.top) || cardRect.top;
-    
-    var nextX, nextY;
+    var randomX, randomY, nextX, nextY;
     var attempts = 0;
 
-    // توليد إحداثيات عشوائية حتماً تقع داخل الحدود الآمنة وتكون بعيدة عن مكان الضغطة الحالية
     do {
-      nextX = minX + Math.random() * (maxX - minX);
-      nextY = minY + Math.random() * (maxY - minY);
-      attempts++;
-    } while (attempts < 15 && Math.abs(nextX - currentX) < 60 && Math.abs(nextY - currentY) < 60);
+      var angle = Math.random() * Math.PI * 2;
+      var distance = 70 + Math.random() * (moveRange - 70);
+      
+      randomX = currentTransformX + Math.cos(angle) * distance;
+      randomY = currentTransformY + Math.sin(angle) * distance;
 
-    // تطبيق المواقع الجديدة بالبكسل بناءً على الشاشة المرئية مباشرة
-    noBtn.style.left = nextX + 'px';
-    noBtn.style.top  = nextY + 'px';
+      // حساب مكان الزر المستقبلي على الشاشة للتأكد من أمان الحدود
+      nextX = btnRect.left - currentTransformX + randomX;
+      nextY = btnRect.top - currentTransformY + randomY;
+
+      attempts++;
+    } while (
+      attempts < 15 && 
+      (nextX < 15 || nextX > viewWidth - 85 || nextY < 15 || nextY > viewHeight - 55)
+    );
+
+    // حفظ الإحداثيات الموضعية الجديدة وتطبيقها
+    noBtn.dataset.tx = randomX;
+    noBtn.dataset.ty = randomY;
+    noBtn.style.transform = 'translate(' + randomX + 'px, ' + randomY + 'px)';
   });
 
   // YES button
